@@ -1,28 +1,5 @@
-/**
- * SMMARIA NOTIFICATIONS — Service Worker
- *
- * This file MUST be served from the SMMARIA website origin:
- *   https://smmaria.site/sw.js
- *
- * A service worker hosted on a different origin (like the
- * notification API domain) cannot control smmaria.site.
- *
- * IF an existing service worker already exists on the SMMARIA
- * website, do NOT overwrite it. Instead, merge the `push` and
- * `notificationclick` handlers below into the existing file,
- * preserving all existing caching, fetch, install, activate,
- * PWA, and offline functionality.
- *
- * Handles:
- *  - push event (parse payload, display notification)
- *  - notificationclick event (open URL, focus existing tab)
- *  - Click analytics tracking
- */
 
-// ═══════════════════════════════════════════════════════════════
-//  CONFIG — Change this to your notification backend URL
-// ═══════════════════════════════════════════════════════════════
-const NOTIF_API_URL = 'https://notification-api.smmaria.site';
+const NOTIF_API_URL = 'https://notifications-production-4281.up.railway.app';
 
 // ═══════════════════════════════════════════════════════════════
 //  PUSH EVENT
