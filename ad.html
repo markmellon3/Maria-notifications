@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SMMARIA Notifications — Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{--navy-900:#050B1F;--navy-800:#0A1530;--navy-700:#122045;--gold-500:#D4AF37;--gold-400:#E8C766;--gold-300:#F4D068;--text-cream:#F5F0E1}
+  *{border-radius:0!important}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--navy-900);color:var(--text-cream);margin:0}
+  .card{background:var(--navy-800);border:1px solid rgba(212,175,55,0.25)}
+  .btn-gold{background:#D4AF37;color:#0A1530;font-weight:700;border:1px solid #D4AF37;cursor:pointer}
+  .btn-gold:hover{background:#F4D068}
+  .btn-outline{background:transparent;color:#F4D068;border:1px solid #D4AF37;cursor:pointer}
+  .btn-outline:hover{background:rgba(212,175,55,0.1)}
+  .btn-danger{background:#FE2C55;color:#fff;border:1px solid #FE2C55;cursor:pointer}
+  .btn-danger:hover{background:#d4264a}
+  .input{background:var(--navy-900);border:1px solid rgba(212,175,55,0.3);color:#F5F0E1;padding:10px 14px;width:100%;box-sizing:border-box}
+  .input:focus{outline:none;border-color:#D4AF37}
+  .label{font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(245,240,225,0.5);margin-bottom:6px;display:block}
+  .tab-active{border-bottom:2px solid #D4AF37;color:#F4D068}
+  .preview-notif{background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);padding:16px;max-width:360px}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;padding:12px;background:var(--navy-700);color:#F4D068;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:2px solid #D4AF37}
+  td{padding:12px;border-bottom:1px solid rgba(212,175,55,0.12);font-size:14px}
+  tr:hover td{background:rgba(212,175,55,0.04)}
+  .hidden{display:none!important}
+  .act-btn{font-size:10px;padding:3px 8px;background:none;cursor:pointer;border:1px solid;margin-right:3px;white-space:nowrap}
+  .scroll-x{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN SCREEN ═══ -->
+<div id="loginScreen" class="min-h-screen flex items-center justify-center px-6">
+  <div class="card p-8 max-w-md w-full">
+    <h1 class="text-2xl font-bold mb-2" style="color:#F4D068;">SMMARIA Notifications</h1>
+    <p class="text-sm mb-6" style="color:rgba(245,240,225,0.5);">Enter your admin key to access the dashboard.</p>
+    <input id="loginKey" type="password" class="input mb-4" placeholder="Admin Key" onkeypress="if(event.key==='Enter')doLogin()" />
+    <button onclick="doLogin()" class="btn-gold px-6 py-3 w-full">Login</button>
+    <p id="loginError" class="text-sm mt-4 hidden" style="color:#FE2C55;"></p>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="dashboard" class="hidden min-h-screen">
+
+  <header style="background:#050B1F;border-bottom:2px solid #D4AF37;" class="sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span style="color:#F4D068;font-weight:800;font-size:18px;">SMMARIA</span>
+        <span style="color:rgba(212,175,55,0.6);font-size:12px;letter-spacing:0.2em;">NOTIFICATIONS</span>
+      </div>
+      <button onclick="logout()" class="btn-outline px-4 py-2 text-sm">Logout</button>
+    </div>
+    <div class="max-w-7xl mx-auto px-6 flex gap-6 flex-wrap">
+      <button onclick="showTab('dashboard')" id="tab-dashboard" class="tab-active py-3 text-sm font-medium">Dashboard</button>
+      <button onclick="showTab('compose')" id="tab-compose" class="py-3 text-sm font-medium" style="color:rgba(245,240,225,0.6);">Compose</button>
+      <button onclick="showTab('history')" id="tab-history" class="py-3 text-sm font-medium" style="color:rgba(245,240,225,0.6);">History</button>
+      <button onclick="showTab('scheduled')" id="tab-scheduled" class="py-3 text-sm font-medium" style="color:rgba(245,240,225,0.6);">Scheduled</button>
+      <button onclick="showTab('templates')" id="tab-templates" class="py-3 text-sm font-medium" style="color:rgba(245,240,225,0.6);">Templates</button>
+      <button onclick="showTab('subscribers')" id="tab-subscribers" class="py-3 text-sm font-medium" style="color:rgba(245,240,225,0.6);">Subscribers</button>
+    </div>
+  </header>
+
+  <!-- ═══ DASHBOARD TAB ═══ -->
+  <section id="section-dashboard" class="max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Overview</h2>
+    <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4"></div>
+    <div class="mt-8">
+      <h3 class="text-lg font-bold mb-4">Recent Activity</h3>
+      <div id="activityList" class="space-y-2"></div>
+    </div>
+  </section>
+
+  <!-- ═══ COMPOSE TAB ═══ -->
+  <section id="section-compose" class="hidden max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Compose Notification</h2>
+    <div class="grid lg:grid-cols-2 gap-8">
+      <div class="card p-6">
+        <div class="mb-4"><label class="label">Title</label><input id="f-title" class="input" placeholder="New SMMARIA Service" oninput="updatePreview()" /></div>
+        <div class="mb-4"><label class="label">Message</label><textarea id="f-body" class="input" rows="3" placeholder="Check out our latest service." oninput="updatePreview()"></textarea></div>
+        <div class="mb-4"><label class="label">Image URL</label><input id="f-image" class="input" placeholder="https://..." oninput="updatePreview()" /></div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div><label class="label">Icon URL</label><input id="f-icon" class="input" placeholder="https://..." oninput="updatePreview()" /></div>
+          <div><label class="label">Badge URL (optional)</label><input id="f-badge" class="input" placeholder="https://..." oninput="updatePreview()" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div><label class="label">Action Text</label><input id="f-action" class="input" placeholder="Activate Now" oninput="updatePreview()" /></div>
+          <div><label class="label">Destination URL</label><input id="f-url" class="input" placeholder="https://smmaria.site/services" oninput="updatePreview()" /></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div><label class="label">Type</label><select id="f-type" class="input"><option value="general">General</option><option value="order">Order</option><option value="payment">Payment</option><option value="account">Account</option><option value="promotion">Promotion</option><option value="system">System</option></select></div>
+          <div><label class="label">Audience</label><select id="f-audience" class="input" onchange="toggleTargetUser()"><option value="all">All Subscribers</option><option value="specific">Specific User</option></select></div>
+        </div>
+        <div id="targetUserBox" class="mb-4 hidden"><label class="label">Target User ID</label><input id="f-targetUser" class="input" placeholder="USER_ID" /></div>
+        <div class="mb-4"><label class="label">Expiration (optional)</label><select id="f-expiration" class="input"><option value="">No expiration</option><option value="1">1 hour</option><option value="6">6 hours</option><option value="24">24 hours</option><option value="72">3 days</option></select></div>
+        <div class="flex gap-3 flex-wrap">
+          <button onclick="sendNotification()" class="btn-gold px-6 py-3">Send Notification</button>
+          <button onclick="saveDraft()" class="btn-outline px-6 py-3">Save Draft</button>
+          <button onclick="sendTest()" class="btn-outline px-6 py-3">Send Test</button>
+          <button onclick="clearForm()" class="btn-outline px-6 py-3">Clear</button>
+        </div>
+        <div id="draftsList" class="mt-6"></div>
+      </div>
+      <div class="card p-6">
+        <h3 class="text-sm font-bold mb-4" style="color:rgba(245,240,225,0.5);text-transform:uppercase;letter-spacing:0.1em;">Live Preview</h3>
+        <div class="preview-notif">
+          <div class="flex items-center gap-2 mb-3">
+            <img id="prev-icon" src="" alt="" class="hidden" style="width:24px;height:24px;" onerror="this.classList.add('hidden')" />
+            <span style="color:rgba(255,255,255,0.6);font-size:12px;">SMMARIA</span>
+            <span style="margin-left:auto;font-size:18px;">🔔</span>
+          </div>
+          <div id="prev-title" style="font-weight:bold;color:#fff;font-size:16px;margin-bottom:4px;">Notification title</div>
+          <div id="prev-body" style="color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:12px;">Notification message body</div>
+          <img id="prev-image" src="" alt="" class="hidden mb-3" style="max-width:100%;max-height:200px;" onerror="this.classList.add('hidden')" />
+          <button id="prev-action" class="hidden btn-gold px-4 py-2" style="font-size:12px;">Activate Now</button>
+        </div>
+        <p class="text-xs mt-4" style="color:rgba(245,240,225,0.3);">Preview only. Final appearance depends on browser/OS.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ HISTORY TAB ═══ -->
+  <section id="section-history" class="hidden max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Notification History</h2>
+    <div class="mb-4 flex gap-3 flex-wrap">
+      <input id="historySearch" class="input" style="max-width:250px;" placeholder="Search by title..." oninput="loadHistory()" />
+      <select id="historyTypeFilter" class="input" style="max-width:160px;" onchange="loadHistory()">
+        <option value="">All Types</option><option value="general">General</option><option value="order">Order</option><option value="payment">Payment</option><option value="account">Account</option><option value="promotion">Promotion</option><option value="system">System</option>
+      </select>
+      <select id="historyStatusFilter" class="input" style="max-width:160px;" onchange="loadHistory()">
+        <option value="">All Status</option><option value="sent">Sent</option><option value="partially_sent">Partially Sent</option><option value="failed">Failed</option>
+      </select>
+    </div>
+    <div class="card scroll-x">
+      <table>
+        <thead><tr><th>Title</th><th>Type</th><th>Audience</th><th>Date</th><th>Sent</th><th>Failed</th><th>Clicks</th><th>Action</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══ SCHEDULED TAB ═══ -->
+  <section id="section-scheduled" class="hidden max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Scheduled Notifications</h2>
+    <div class="card p-6 mb-6">
+      <h3 class="text-lg font-bold mb-4">Schedule New Notification</h3>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label class="label">Title</label><input id="s-title" class="input" placeholder="Notification title"></div>
+        <div><label class="label">Type</label><select id="s-type" class="input"><option value="general">General</option><option value="order">Order</option><option value="payment">Payment</option><option value="account">Account</option><option value="promotion">Promotion</option><option value="system">System</option></select></div>
+      </div>
+      <div class="mb-4"><label class="label">Message</label><textarea id="s-body" class="input" rows="2" placeholder="Notification message"></textarea></div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label class="label">Action Text</label><input id="s-action" class="input" placeholder="Activate Now"></div>
+        <div><label class="label">Destination URL</label><input id="s-url" class="input" placeholder="https://smmaria.site"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label class="label">Image URL</label><input id="s-image" class="input" placeholder="https://..."></div>
+        <div><label class="label">Icon URL</label><input id="s-icon" class="input" placeholder="https://..."></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label class="label">Audience</label><select id="s-audience" class="input" onchange="document.getElementById('s-targetBox').classList.toggle('hidden',this.value!=='specific')"><option value="all">All Subscribers</option><option value="specific">Specific User</option></select></div>
+        <div id="s-targetBox" class="hidden"><label class="label">Target User ID</label><input id="s-targetUser" class="input" placeholder="USER_ID"></div>
+      </div>
+      <div class="mb-6"><label class="label">Schedule Date & Time (Africa/Kampala)</label><input id="s-scheduledAt" type="datetime-local" class="input"></div>
+      <button onclick="createScheduled()" class="btn-gold px-6 py-3">Schedule Notification</button>
+    </div>
+    <div class="card scroll-x">
+      <table><thead><tr><th>Title</th><th>Type</th><th>Scheduled For</th><th>Status</th><th>Actions</th></tr></thead><tbody id="scheduledBody"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ═══ TEMPLATES TAB ═══ -->
+  <section id="section-templates" class="hidden max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Notification Templates</h2>
+    <div class="card p-6 mb-6">
+      <h3 class="text-lg font-bold mb-4">Create Template</h3>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label class="label">Template Name</label><input id="t-name" class="input" placeholder="Welcome"></div>
+        <div><label class="label">Type</label><select id="t-type" class="input"><option value="general">General</option><option value="order">Order</option><option value="payment">Payment</option><option value="account">Account</option><option value="promotion">Promotion</option><option value="system">System</option></select></div>
+      </div>
+      <div class="mb-4"><label class="label">Title</label><input id="t-title" class="input" placeholder="Welcome to SMMARIA!"></div>
+      <div class="mb-4"><label class="label">Message</label><textarea id="t-body" class="input" rows="2" placeholder="Thank you for joining..."></textarea></div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label class="label">Action Text</label><input id="t-action" class="input" placeholder="Get Started"></div>
+        <div><label class="label">Destination URL</label><input id="t-url" class="input" placeholder="https://smmaria.site"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label class="label">Image URL</label><input id="t-image" class="input" placeholder="https://..."></div>
+        <div><label class="label">Icon URL</label><input id="t-icon" class="input" placeholder="https://..."></div>
+      </div>
+      <button onclick="createTemplate()" class="btn-gold px-6 py-3">Save Template</button>
+    </div>
+    <div class="card scroll-x">
+      <table><thead><tr><th>Name</th><th>Type</th><th>Title</th><th>Actions</th></tr></thead><tbody id="templatesBody"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ═══ SUBSCRIBERS TAB ═══ -->
+  <section id="section-subscribers" class="hidden max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Subscribed Users</h2>
+    <div class="mb-4 flex gap-3 flex-wrap">
+      <input id="subscriberSearch" class="input" style="max-width:250px;" placeholder="Search by User ID..." oninput="loadSubscribers()" />
+      <select id="subscriberFilter" class="input" style="max-width:200px;" onchange="loadSubscribers()">
+        <option value="all">All</option><option value="subscribed">Subscribed</option><option value="unsubscribed">Unsubscribed</option><option value="multi">Multiple Devices</option>
+      </select>
+    </div>
+    <div class="card scroll-x">
+      <table><thead><tr><th>User ID</th><th>Subscribed</th><th>Method</th><th>Devices</th><th>Last Seen</th><th>Actions</th></tr></thead><tbody id="subscribersBody"></tbody></table>
+    </div>
+  </section>
+
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<div id="analyticsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-6" style="background:rgba(5,11,31,0.9);">
+  <div class="card p-8 max-w-lg w-full max-h-90vh overflow-y-auto"><div class="flex justify-between items-start mb-4"><h3 class="text-xl font-bold" id="am-title">Analytics</h3><button onclick="closeModal()" class="text-2xl" style="color:rgba(245,240,225,0.5);">&times;</button></div><div id="am-content"></div></div>
+</div>
+<div id="devicesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-6" style="background:rgba(5,11,31,0.9);">
+  <div class="card p-8 max-w-lg w-full max-h-90vh overflow-y-auto"><div class="flex justify-between items-start mb-4"><h3 class="text-xl font-bold" id="dm-title">Devices</h3><button onclick="closeDevicesModal()" class="text-2xl" style="color:rgba(245,240,225,0.5);">&times;</button></div><div id="dm-content"></div></div>
+</div>
+<div id="resendModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-6" style="background:rgba(5,11,31,0.9);">
+  <div class="card p-8 max-w-md w-full"><div class="flex justify-between items-start mb-4"><h3 class="text-xl font-bold">Resend Notification?</h3><button onclick="closeResendModal()" class="text-2xl" style="color:rgba(245,240,225,0.5);">&times;</button></div><div id="resendContent" class="space-y-2 text-sm" style="color:rgba(245,240,225,0.7);"></div><div class="flex gap-3 mt-6"><button onclick="closeResendModal()" class="btn-outline px-6 py-3 flex-1">Cancel</button><button id="resendConfirmBtn" onclick="confirmResend()" class="btn-gold px-6 py-3 flex-1">Resend Notification</button></div></div>
+</div>
+<div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-6" style="background:rgba(5,11,31,0.9);">
+  <div class="card p-8 max-w-md w-full"><h3 class="text-xl font-bold mb-4">Delete Notification?</h3><p class="text-sm mb-6" style="color:rgba(245,240,225,0.6);" id="deleteMsg"></p><div class="flex gap-3"><button onclick="closeDeleteModal()" class="btn-outline px-6 py-3 flex-1">Cancel</button><button id="deleteConfirmBtn" class="btn-danger px-6 py-3 flex-1">Delete</button></div></div>
+</div>
+
+<script>
+const API_URL='https://notifications-production-4281.up.railway.app';
+let adminKey=localStorage.getItem('smmaria_notif_admin_key')||'';let resendNotifId=null,deleteNotifId=null;
+
+async function api(path,method,body){const opts={method:method||'GET',headers:{'Content-Type':'application/json','x-admin-key':adminKey}};if(body)opts.body=JSON.stringify(body);const res=await fetch(API_URL+path,opts);return res.json();}
+async function apiRaw(path,method){return fetch(API_URL+path,{method,headers:{'x-admin-key':adminKey}});}
+
+function doLogin(){const key=document.getElementById('loginKey').value.trim();if(!key)return;adminKey=key;localStorage.setItem('smmaria_notif_admin_key',key);checkLogin();}
+function logout(){adminKey='';localStorage.removeItem('smmaria_notif_admin_key');location.reload();}
+async function checkLogin(){try{const r=await api('/api/admin/stats','GET');if(r.success){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden');loadDashboard();}else showLoginError('Invalid admin key');}catch(e){showLoginError('Cannot connect to backend');}}
+function showLoginError(msg){const el=document.getElementById('loginError');el.textContent=msg;el.classList.remove('hidden');}
+
+function showTab(tab){['dashboard','compose','history','scheduled','templates','subscribers'].forEach(t=>{document.getElementById('section-'+t).classList.add('hidden');document.getElementById('tab-'+t).classList.remove('tab-active');document.getElementById('tab-'+t).style.color='rgba(245,240,225,0.6)';});document.getElementById('section-'+tab).classList.remove('hidden');document.getElementById('tab-'+tab).classList.add('tab-active');document.getElementById('tab-'+tab).style.color='#F4D068';if(tab==='dashboard')loadDashboard();if(tab==='compose')loadDrafts();if(tab==='history')loadHistory();if(tab==='scheduled')loadScheduled();if(tab==='templates')loadTemplates();if(tab==='subscribers')loadSubscribers();}
+
+// ═══ DASHBOARD ═══
+async function loadDashboard(){try{const r=await api('/api/admin/stats','GET');if(!r.success)return;const s=r.stats;const items=[{label:'Subscribed Users',value:s.subscribedUsers||0,color:'#F4D068'},{label:'Active Devices',value:s.activeDevices||0,color:'#25F4EE'},{label:'In-App Subs',value:s.inAppSubscribers||0,color:'#25D366'},{label:'Push Subs',value:s.pushSubscribers||0,color:'#F5F0E1'},{label:'Notifications Sent',value:s.notificationsSent||0,color:'#F5F0E1'},{label:'Push Attempts',value:s.totalSendAttempts||0,color:'#F4D068'},{label:'Failed Sends',value:s.totalFailedSends||0,color:'#FE2C55'},{label:'Removed Subs',value:s.totalRemovedSubscriptions||0,color:'#FE2C55'},{label:'Total Clicks',value:s.totalNotificationClicks||0,color:'#25F4EE'},{label:'Action Clicks',value:s.totalActionClicks||0,color:'#25F4EE'},{label:'Click Rate',value:s.clickRate||'0%',color:'#F4D068'},{label:'Action Rate',value:s.actionClickRate||'0%',color:'#F4D068'}];document.getElementById('statsGrid').innerHTML=items.map(i=>`<div class="card p-5"><div style="font-size:24px;font-weight:800;color:${i.color};">${i.value}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:rgba(245,240,225,0.5);margin-top:4px;">${i.label}</div></div>`).join('');if(r.recentActivity&&r.recentActivity.length){document.getElementById('activityList').innerHTML=r.recentActivity.map(a=>{const icon=a.action.includes('sent')?'📤':a.action.includes('resent')?'🔁':a.action.includes('deleted')?'🗑️':a.action.includes('template')?'📋':a.action.includes('draft')?'📝':a.action.includes('scheduled')?'⏰':'⚙️';return`<div class="card p-3 flex items-center gap-3"><span style="font-size:16px;">${icon}</span><div style="flex:1;"><div style="font-size:13px;color:#F5F0E1;">${escapeHtml(a.action.replace(/_/g,' '))}</div>${a.notificationId?`<div style="font-size:11px;color:rgba(245,240,225,0.4);">${escapeHtml(a.notificationId)}</div>`:''}</div><div style="font-size:11px;color:rgba(245,240,225,0.4);">${a.timestamp?new Date(a.timestamp).toLocaleString():''}</div></div>`;}).join('');}else document.getElementById('activityList').innerHTML='<p style="color:rgba(245,240,225,0.3);font-size:14px;">No recent activity</p>';}catch(e){console.error(e);}}
+
+// ═══ PREVIEW ═══
+function updatePreview(){const title=document.getElementById('f-title').value||'Notification title';const body=document.getElementById('f-body').value||'Notification message body';const image=document.getElementById('f-image').value;const icon=document.getElementById('f-icon').value;const action=document.getElementById('f-action').value;document.getElementById('prev-title').textContent=title;document.getElementById('prev-body').textContent=body;const pi=document.getElementById('prev-image');if(image){pi.src=image;pi.classList.remove('hidden');}else pi.classList.add('hidden');const pic=document.getElementById('prev-icon');if(icon){pic.src=icon;pic.classList.remove('hidden');}else pic.classList.add('hidden');const pa=document.getElementById('prev-action');if(action){pa.textContent=action;pa.classList.remove('hidden');}else pa.classList.add('hidden');}
+function toggleTargetUser(){document.getElementById('targetUserBox').classList.toggle('hidden',document.getElementById('f-audience').value!=='specific');}
+
+// ═══ SEND ═══
+async function sendNotification(){const data={title:document.getElementById('f-title').value.trim(),body:document.getElementById('f-body').value.trim(),imageUrl:document.getElementById('f-image').value.trim()||null,iconUrl:document.getElementById('f-icon').value.trim()||null,badgeUrl:document.getElementById('f-badge').value.trim()||null,actionText:document.getElementById('f-action').value.trim()||null,destinationUrl:document.getElementById('f-url').value.trim()||null,type:document.getElementById('f-type').value,audience:document.getElementById('f-audience').value,expirationHours:document.getElementById('f-expiration').value||null};if(!data.title||!data.body){alert('Title and message required');return;}const ep=data.audience==='specific'?'/api/admin/send-user':'/api/admin/send';if(data.audience==='specific'){data.targetUserId=document.getElementById('f-targetUser').value.trim();if(!data.targetUserId){alert('Target user ID required');return;}}try{const r=await api(ep,'POST',data);if(r.success){alert('Sent!\nSent: '+r.stats.sent+'\nFailed: '+r.stats.failed+'\nRemoved: '+r.stats.removed);clearForm();showTab('history');}else alert('Error: '+r.message);}catch(e){alert('Failed');}}
+function clearForm(){['f-title','f-body','f-image','f-icon','f-badge','f-action','f-url','f-targetUser','f-expiration'].forEach(id=>{document.getElementById(id).value='';});document.getElementById('f-type').value='general';document.getElementById('f-audience').value='all';toggleTargetUser();updatePreview();}
+
+// ═══ SEND TEST ═══
+async function sendTest(){const data={title:document.getElementById('f-title').value.trim(),body:document.getElementById('f-body').value.trim(),imageUrl:document.getElementById('f-image').value.trim()||null,iconUrl:document.getElementById('f-icon').value.trim()||null,badgeUrl:document.getElementById('f-badge').value.trim()||null,actionText:document.getElementById('f-action').value.trim()||null,destinationUrl:document.getElementById('f-url').value.trim()||null,type:document.getElementById('f-type').value};if(!data.title||!data.body){alert('Title and message required');return;}try{const r=await api('/api/admin/send-test','POST',data);if(r.success)alert('Test sent!\nSent: '+r.sent+'\nFailed: '+r.failed);else alert('Error: '+r.message);}catch(e){alert('Failed');}}
+
+// ═══ DRAFTS ═══
+async function saveDraft(){const data={name:document.getElementById('f-title').value.trim()||'Untitled Draft',title:document.getElementById('f-title').value.trim(),body:document.getElementById('f-body').value.trim(),imageUrl:document.getElementById('f-image').value.trim()||null,iconUrl:document.getElementById('f-icon').value.trim()||null,badgeUrl:document.getElementById('f-badge').value.trim()||null,actionText:document.getElementById('f-action').value.trim()||null,destinationUrl:document.getElementById('f-url').value.trim()||null,type:document.getElementById('f-type').value,audience:document.getElementById('f-audience').value,targetUserId:document.getElementById('f-targetUser').value.trim()||null,expirationHours:document.getElementById('f-expiration').value||null};try{const r=await api('/api/admin/drafts','POST',data);if(r.success){alert('Draft saved!');loadDrafts();}else alert('Error: '+r.message);}catch(e){alert('Failed');}}
+async function loadDrafts(){try{const r=await api('/api/admin/drafts','GET');if(!r.success||!r.drafts.length){document.getElementById('draftsList').innerHTML='';return;}document.getElementById('draftsList').innerHTML='<h4 class="text-sm font-bold mb-2" style="color:rgba(245,240,225,0.5);text-transform:uppercase;letter-spacing:0.1em;">Saved Drafts</h4>'+r.drafts.map(d=>`<div class="card p-3 mb-2 flex items-center justify-between"><div><strong>${escapeHtml(d.name)}</strong> <span style="color:rgba(245,240,225,0.4);font-size:12px;">${d.createdAt?new Date(d.createdAt).toLocaleString():''}</span></div><div class="flex gap-2"><button class="act-btn" style="color:#F4D068;border-color:rgba(212,175,55,0.3);" onclick="loadDraft('${d.id}')">Edit</button><button class="act-btn" style="color:#25D366;border-color:rgba(37,211,102,0.3);" onclick="sendDraft('${d.id}')">Send</button><button class="act-btn" style="color:#FE2C55;border-color:rgba(254,44,85,0.3);" onclick="deleteDraft('${d.id}')">Delete</button></div></div>`).join('');}catch(e){}}
+async function loadDraft(id){try{const r=await api('/api/admin/drafts','GET');if(!r.success)return;const d=r.drafts.find(x=>x.id===id);if(!d)return;document.getElementById('f-title').value=d.title||'';document.getElementById('f-body').value=d.body||'';document.getElementById('f-image').value=d.imageUrl||'';document.getElementById('f-icon').value=d.iconUrl||'';document.getElementById('f-badge').value=d.badgeUrl||'';document.getElementById('f-action').value=d.actionText||'';document.getElementById('f-url').value=d.destinationUrl||'';document.getElementById('f-type').value=d.type||'general';document.getElementById('f-audience').value=d.audience||'all';if(d.targetUserId){document.getElementById('f-audience').value='specific';document.getElementById('f-targetUser').value=d.targetUserId;}if(d.expirationHours)document.getElementById('f-expiration').value=d.expirationHours;toggleTargetUser();updatePreview();showTab('compose');}catch(e){}}
+async function sendDraft(id){if(!confirm('Send this draft now?'))return;try{const r=await api('/api/admin/drafts/'+id+'/send','POST',{});if(r.success){alert('Draft sent!\nSent: '+r.stats.sent+'\nFailed: '+r.stats.failed);showTab('history');}else alert('Error: '+r.message);}catch(e){alert('Failed');}}
+async function deleteDraft(id){if(!confirm('Delete this draft?'))return;try{const r=await apiRaw('/api/admin/drafts/'+id,'DELETE');const j=await r.json();if(j.success)loadDrafts();else alert('Error: '+j.message);}catch(e){alert('Failed');}}
+
+// ═══ RESEND ═══
+async function openResendModal(notifId){resendNotifId=notifId;try{const r=await api('/api/admin/analytics/'+notifId,'GET');if(!r.success)return;const a=r.analytics;document.getElementById('resendContent').innerHTML=`<p><strong>Title:</strong> ${escapeHtml(a.title)}</p><p><strong>Type:</strong> ${a.type}</p><p><strong>Original audience:</strong> ${a.audience}</p><p><strong>Originally sent:</strong> ${a.sentCount}</p><p><strong>Clicks:</strong> ${a.clickCount}</p>${a.resendOf?`<p style="color:#FE2C55;"><strong>Resend of:</strong> ${a.resendOf}</p>`:''}<p><strong>Resend #:</strong> ${a.resendNumber?parseInt(a.resendNumber)+1:1}</p>`;document.getElementById('resendModal').classList.remove('hidden');}catch(e){alert('Unable to load details');}}
+function closeResendModal(){document.getElementById('resendModal').classList.add('hidden');resendNotifId=null;}
+async function confirmResend(){if(!resendNotifId)return;const btn=document.getElementById('resendConfirmBtn');btn.textContent='Sending...';btn.disabled=true;try{const r=await api('/api/admin/resend/'+resendNotifId,'POST',{smartResend:'all'});if(r.success){alert('Resent! New ID: '+r.notificationId+'\nSent: '+r.stats.sent+'\nFailed: '+r.stats.failed);closeResendModal();loadHistory();}else alert('Error: '+r.message);}catch(e){alert('Failed');}btn.textContent='Resend Notification';btn.disabled=false;}
+
+// ═══ EDIT & RESEND / DUPLICATE ═══
+async function loadNotifToCompose(notifId){try{const r=await api('/api/admin/duplicate/'+notifId,'GET');if(!r.success)return;const n=r.notification;document.getElementById('f-title').value=n.title||'';document.getElementById('f-body').value=n.body||'';document.getElementById('f-image').value=n.imageUrl||'';document.getElementById('f-icon').value=n.iconUrl||'';document.getElementById('f-badge').value=n.badgeUrl||'';document.getElementById('f-action').value=n.actionText||'';document.getElementById('f-url').value=n.destinationUrl||'';document.getElementById('f-type').value=n.type||'general';document.getElementById('f-audience').value=n.audience||'all';if(n.targetUserId){document.getElementById('f-audience').value='specific';document.getElementById('f-targetUser').value=n.targetUserId;}toggleTargetUser();updatePreview();showTab('compose');}catch(e){alert('Unable to load');}}
+
+// ═══ DELETE ═══
+function openDeleteModal(notifId,title){deleteNotifId=notifId;document.getElementById('deleteMsg').textContent='Delete "'+title+'"? This removes the notification record only. Subscriber data is NOT affected.';document.getElementById('deleteModal').classList.remove('hidden');document.getElementById('deleteConfirmBtn').onclick=confirmDelete;}
+function closeDeleteModal(){document.getElementById('deleteModal').classList.add('hidden');deleteNotifId=null;}
+async function confirmDelete(){if(!deleteNotifId)return;try{const r=await apiRaw('/api/admin/notifications/'+deleteNotifId,'DELETE');const j=await r.json();if(j.success){closeDeleteModal();loadHistory();}else alert('Error: '+j.message);}catch(e){alert('Failed');}}
+
+// ═══ HISTORY ═══
+async function loadHistory(){try{const r=await api('/api/admin/notifications','GET');if(!r.success)return;const search=(document.getElementById('historySearch').value||'').toLowerCase();const tf=document.getElementById('historyTypeFilter').value;const sf=document.getElementById('historyStatusFilter').value;let filtered=r.notifications.filter(n=>{if(search&&!(n.title||'').toLowerCase().includes(search))return false;if(tf&&n.type!==tf)return false;if(sf&&n.status!==sf)return false;return true;});document.getElementById('historyBody').innerHTML=filtered.length?filtered.map(n=>`<tr><td style="font-weight:600;">${escapeHtml(n.title)} ${n.resendOf?`<span style="font-size:10px;color:#FE2C55;margin-left:6px;">RESEND #${n.resendNumber}</span>`:''}</td><td style="color:#25F4EE;">${n.type}</td><td>${n.audience==='specific'?'User':'All'}</td><td style="color:rgba(245,240,225,0.6);font-size:12px;">${n.createdAt?new Date(n.createdAt).toLocaleDateString():'-'}</td><td style="color:#F4D068;font-weight:700;">${n.sentCount}</td><td style="color:#FE2C55;">${n.failedCount}</td><td>${n.clickCount}</td><td style="color:#25F4EE;">${n.actionClickCount}</td><td style="text-transform:uppercase;font-size:10px;color:${n.status==='sent'?'#25F4EE':'#F4D068'};">${n.status}</td><td style="white-space:nowrap;"><button class="act-btn" style="color:#25F4EE;border-color:rgba(37,244,238,0.3);" onclick="showAnalytics('${n.id}')">View</button><button class="act-btn" style="color:#F4D068;border-color:rgba(212,175,55,0.3);" onclick="openResendModal('${n.id}')">Resend</button><button class="act-btn" style="color:#F4D068;border-color:rgba(212,175,55,0.3);" onclick="loadNotifToCompose('${n.id}')">Edit</button><button class="act-btn" style="color:rgba(245,240,225,0.6);border-color:rgba(212,175,55,0.2);" onclick="loadNotifToCompose('${n.id}')">Copy</button><button class="act-btn" style="color:#FE2C55;border-color:rgba(254,44,85,0.3);" onclick="openDeleteModal('${n.id}','${escapeHtml(n.title).replace(/'/g,"\\'")}')">Del</button></td></tr>`).join(''):'<tr><td colspan="10" style="text-align:center;color:rgba(245,240,225,0.3);">No notifications found</td></tr>';}catch(e){console.error(e);}}
+
+// ═══ ANALYTICS MODAL ═══
+async function showAnalytics(notifId){try{const r=await api('/api/admin/analytics/'+notifId,'GET');if(!r.success)return;const a=r.analytics;document.getElementById('am-title').textContent=a.title;document.getElementById('am-content').innerHTML=`${a.resendOf?`<div class="mb-4" style="color:#FE2C55;font-size:12px;"><strong>Resent from:</strong> ${a.resendOf} <strong>| Resend #${a.resendNumber}</strong></div>`:''}<div class="grid grid-cols-2 gap-3"><div class="card p-4"><div style="font-size:24px;font-weight:800;color:#F4D068;">${a.sentCount}</div><div style="font-size:10px;text-transform:uppercase;color:rgba(245,240,225,0.5);">Sent</div></div><div class="card p-4"><div style="font-size:24px;font-weight:800;color:#FE2C55;">${a.failedCount}</div><div style="font-size:10px;text-transform:uppercase;color:rgba(245,240,225,0.5);">Failed</div></div><div class="card p-4"><div style="font-size:24px;font-weight:800;color:#F4D068;">${a.removedCount}</div><div style="font-size:10px;text-transform:uppercase;color:rgba(245,240,225,0.5);">Removed</div></div><div class="card p-4"><div style="font-size:24px;font-weight:800;color:#25F4EE;">${a.clickCount}</div><div style="font-size:10px;text-transform:uppercase;color:rgba(245,240,225,0.5);">Clicks</div></div><div class="card p-4"><div style="font-size:24px;font-weight:800;color:#25F4EE;">${a.actionClickCount}</div><div style="font-size:10px;text-transform:uppercase;color:rgba(245,240,225,0.5);">Action Clicks</div></div><div class="card p-4"><div style="font-size:24px;font-weight:800;color:#F4D068;">${a.clickRate||'0%'}</div><div style="font-size:10px;text-transform:uppercase;color:rgba(245,240,225,0.5);">Click Rate</div></div></div><div class="mt-4 text-sm" style="color:rgba(245,240,225,0.6);"><p><strong>Body:</strong> ${escapeHtml(a.body)}</p><p><strong>Type:</strong> ${a.type}</p><p><strong>Audience:</strong> ${a.audience}</p><p><strong>Action:</strong> ${a.actionText||'N/A'}</p><p><strong>URL:</strong> ${a.destinationUrl||'N/A'}</p><p><strong>Created:</strong> ${a.createdAt?new Date(a.createdAt).toLocaleString():'N/A'}</p></div>`;document.getElementById('analyticsModal').classList.remove('hidden');}catch(e){console.error(e);}}
+function closeModal(){document.getElementById('analyticsModal').classList.add('hidden');}
+
+// ═══ SUBSCRIBERS ═══
+async function loadSubscribers(){try{const r=await api('/api/admin/users','GET');if(!r.success)return;const search=(document.getElementById('subscriberSearch').value||'').toLowerCase();const filter=document.getElementById('subscriberFilter').value;let filtered=r.users.filter(u=>{if(search&&!(u.userId||'').toLowerCase().includes(search))return false;if(filter==='subscribed'&&u.subscribed)return false;if(filter==='unsubscribed'&&u.subscribed)return false;if(filter==='multi'&&u.deviceCount<2)return false;return true;});document.getElementById('subscribersBody').innerHTML=filtered.length?filtered.map(u=>`<tr><td style="font-weight:600;color:#F4D068;font-size:12px;">${escapeHtml(u.userId)}</td><td>${u.subscribed?'<span style="color:#25F4EE;">Yes</span>':'<span style="color:#FE2C55;">No</span>'}</td><td style="font-size:11px;color:rgba(245,240,225,0.5);">${u.deliveryMethod||'push'}</td><td>${u.deviceCount}</td><td style="color:rgba(245,240,225,0.6);font-size:12px;">${u.lastSeenAt?new Date(u.lastSeenAt).toLocaleDateString():'-'}</td><td style="white-space:nowrap;"><button class="act-btn" style="color:#F4D068;border-color:rgba(212,175,55,0.3);" onclick="sendToUserFromSubs('${escapeHtml(u.userId).replace(/'/g,"\\'")}')">Send</button><button class="act-btn" style="color:#25F4EE;border-color:rgba(37,244,238,0.3);" onclick="showDevices('${escapeHtml(u.userId).replace(/'/g,"\\'")}')">Devices</button></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:rgba(245,240,225,0.3);">No subscribers found</td></tr>';}catch(e){console.error(e);}}
+function sendToUserFromSubs(userId){showTab('compose');document.getElementById('f-audience').value='specific';toggleTargetUser();document.getElementById('f-targetUser').value=userId;}
+async function showDevices(userId){try{const r=await api('/api/admin/users','GET');if(!r.success)return;const user=r.users.find(u=>u.userId===userId);if(!user)return;document.getElementById('dm-title').textContent='Devices — '+userId;document.getElementById('dm-content').innerHTML=user.devices.length?user.devices.map(d=>`<div class="card p-4 mb-2"><div style="font-weight:600;">${escapeHtml(d.browser)}</div><div style="font-size:12px;color:rgba(245,240,225,0.6);">Platform: ${escapeHtml(d.platform)}</div><div style="font-size:12px;color:rgba(245,240,225,0.6);">Created: ${d.createdAt?new Date(d.createdAt).toLocaleString():'-'}</div><div style="font-size:12px;color:${d.active?'#25F4EE':'#FE2C55'};">${d.active?'Active':'Inactive'}</div></div>`).join(''):'<p style="color:rgba(245,240,225,0.5);">No active devices</p>';document.getElementById('devicesModal').classList.remove('hidden');}catch(e){console.error(e);}}
+function closeDevicesModal(){document.getElementById('devicesModal').classList.add('hidden');}
+
+// ═══ TEMPLATES ═══
+async function createTemplate(){const data={name:document.getElementById('t-name').value.trim(),title:document.getElementById('t-title').value.trim(),body:document.getElementById('t-body').value.trim(),imageUrl:document.getElementById('t-image').value.trim()||null,iconUrl:document.getElementById('t-icon').value.trim()||null,actionText:document.getElementById('t-action').value.trim()||null,destinationUrl:document.getElementById('t-url').value.trim()||null,type:document.getElementById('t-type').value};if(!data.name||!data.title||!data.body){alert('Name, title, and body required');return;}try{const r=await api('/api/admin/templates','POST',data);if(r.success){alert('Template created!');['t-name','t-title','t-body','t-image','t-icon','t-action','t-url'].forEach(id=>document.getElementById(id).value='');loadTemplates();}else alert('Error: '+r.message);}catch(e){alert('Failed');}}
+async function loadTemplates(){try{const r=await api('/api/admin/templates','GET');if(!r.success)return;document.getElementById('templatesBody').innerHTML=r.templates.length?r.templates.map(t=>`<tr><td style="font-weight:600;color:#F4D068;">${escapeHtml(t.name)}</td><td style="color:#25F4EE;">${t.type}</td><td>${escapeHtml(t.title)}</td><td><button class="act-btn" style="color:#F4D068;border-color:rgba(212,175,55,0.3);" onclick="useTemplate('${t.id}')">Use</button><button class="act-btn" style="color:#FE2C55;border-color:rgba(254,44,85,0.3);" onclick="deleteTemplate('${t.id}')">Delete</button></td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:rgba(245,240,225,0.3);">No templates</td></tr>';}catch(e){}}
+async function useTemplate(id){try{const r=await api('/api/admin/templates','GET');if(!r.success)return;const t=r.templates.find(x=>x.id===id);if(!t)return;document.getElementById('f-title').value=t.title||'';document.getElementById('f-body').value=t.body||'';document.getElementById('f-image').value=t.imageUrl||'';document.getElementById('f-icon').value=t.iconUrl||'';document.getElementById('f-action').value=t.actionText||'';document.getElementById('f-url').value=t.destinationUrl||'';document.getElementById('f-type').value=t.type||'general';updatePreview();showTab('compose');}catch(e){}}
+async function deleteTemplate(id){if(!confirm('Delete this template?'))return;try{const r=await apiRaw('/api/admin/templates/'+id,'DELETE');const j=await r.json();if(j.success)loadTemplates();else alert('Error: '+j.message);}catch(e){alert('Failed');}}
+
+// ═══ SCHEDULED ═══
+async function createScheduled(){const data={title:document.getElementById('s-title').value.trim(),body:document.getElementById('s-body').value.trim(),imageUrl:document.getElementById('s-image').value.trim()||null,iconUrl:document.getElementById('s-icon').value.trim()||null,actionText:document.getElementById('s-action').value.trim()||null,destinationUrl:document.getElementById('s-url').value.trim()||null,type:document.getElementById('s-type').value,audience:document.getElementById('s-audience').value,targetUserId:document.getElementById('s-targetUser').value.trim()||null,scheduledAt:document.getElementById('s-scheduledAt').value?new Date(document.getElementById('s-scheduledAt').value).getTime():null,timezone:'Africa/Kampala'};if(!data.title||!data.body){alert('Title and body required');return;}if(!data.scheduledAt){alert('Schedule date required');return;}try{const r=await api('/api/admin/scheduled','POST',data);if(r.success){alert('Scheduled!');['s-title','s-body','s-image','s-icon','s-action','s-url','s-targetUser','s-scheduledAt'].forEach(id=>document.getElementById(id).value='');loadScheduled();}else alert('Error: '+r.message);}catch(e){alert('Failed');}}
+async function loadScheduled(){try{const r=await api('/api/admin/scheduled','GET');if(!r.success)return;document.getElementById('scheduledBody').innerHTML=r.scheduled.length?r.scheduled.map(s=>`<tr><td style="font-weight:600;">${escapeHtml(s.title)}</td><td style="color:#25F4EE;">${s.type}</td><td style="color:rgba(245,240,225,0.6);font-size:12px;">${s.scheduledAt?new Date(s.scheduledAt).toLocaleString():'-'}</td><td style="text-transform:uppercase;font-size:10px;color:${s.status==='scheduled'?'#F4D068':s.status==='sent'?'#25D366':'#FE2C55'};">${s.status}</td><td>${s.status==='scheduled'?`<button class="act-btn" style="color:#25D366;border-color:rgba(37,211,102,0.3);" onclick="sendScheduledNow('${s.id}')">Send Now</button><button class="act-btn" style="color:#FE2C55;border-color:rgba(254,44,85,0.3);" onclick="cancelScheduled('${s.id}')">Cancel</button>`:'<span style="color:rgba(245,240,225,0.3);font-size:11px;">—</span>'}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:rgba(245,240,225,0.3);">No scheduled notifications</td></tr>';}catch(e){}}
+async function sendScheduledNow(id){if(!confirm('Send now?'))return;try{const r=await api('/api/admin/scheduled/'+id+'/send','POST',{});if(r.success){alert('Sent!\nSent: '+r.stats.sent+'\nFailed: '+r.stats.failed);loadScheduled();}else alert('Error: '+r.message);}catch(e){alert('Failed');}}
+async function cancelScheduled(id){if(!confirm('Cancel? This will NOT be sent.'))return;try{const r=await api('/api/admin/scheduled/'+id+'/cancel','POST',{});if(r.success)loadScheduled();else alert('Error: '+r.message);}catch(e){alert('Failed');}}
+
+// ═══ UTIL ═══
+function escapeHtml(str){if(!str)return'';return String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+
+// ═══ INIT ═══
+if(adminKey)checkLogin();
+</script>
+</body>
+</html>
