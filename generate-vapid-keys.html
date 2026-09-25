@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VAPID Key Generator — SMMARIA</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #050B1F;
+    color: #F5F0E1;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .container { max-width: 600px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 800; color: #F4D068; margin-bottom: 8px; }
+  p.desc { font-size: 14px; color: rgba(245,240,225,0.6); margin-bottom: 24px; line-height: 1.5; }
+  .field { margin-bottom: 20px; }
+  .label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #D4AF37;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .key-box {
+    background: #0A1530;
+    border: 1px solid rgba(212,175,55,0.3);
+    padding: 16px;
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #F5F0E1;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid #D4AF37;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.2s;
+    margin-top: 8px;
+  }
+  .btn-gold { background: #D4AF37; color: #0A1530; }
+  .btn-gold:hover { background: #F4D068; }
+  .btn-outline { background: transparent; color: #F4D068; }
+  .btn-outline:hover { background: rgba(212,175,55,0.1); }
+  .copy-btn {
+    font-size: 11px;
+    padding: 6px 14px;
+  }
+  .status {
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    border: 1px solid;
+    display: none;
+  }
+  .status.success { color: #25D366; border-color: #25D366; background: rgba(37,211,102,0.08); display: block; }
+  .status.error { color: #FE2C55; border-color: #FE2C55; background: rgba(254,44,85,0.08); display: block; }
+  .hidden { display: none; }
+  .note {
+    margin-top: 24px;
+    padding: 16px;
+    background: #0A1530;
+    border: 1px solid rgba(212,175,55,0.2);
+    font-size: 13px;
+    color: rgba(245,240,225,0.6);
+    line-height: 1.6;
+  }
+  .note strong { color: #F4D068; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>VAPID Key Generator</h1>
+  <p class="desc">
+    Generate Web Push VAPID keys directly in your browser.
+    These keys are used by the SMMARIA notification backend
+    to send push notifications.
+  </p>
+
+  <div id="status" class="status"></div>
+
+  <button class="btn btn-gold" onclick="generateKeys()" id="generateBtn">
+    Generate VAPID Keys
+  </button>
+
+  <div id="results" class="hidden">
+
+    <div class="field" style="margin-top: 24px;">
+      <div class="label">VAPID_PUBLIC_KEY</div>
+      <div class="key-box" id="publicKey">—</div>
+      <button class="btn btn-outline copy-btn" onclick="copyKey('publicKey')">
+        Copy Public Key
+      </button>
+    </div>
+
+    <div class="field">
+      <div class="label">VAPID_PRIVATE_KEY</div>
+      <div class="key-box" id="privateKey">—</div>
+      <button class="btn btn-outline copy-btn" onclick="copyKey('privateKey')">
+        Copy Private Key
+      </button>
+    </div>
+
+    <div class="note">
+      <strong>Where to put these keys:</strong><br/><br/>
+      1. <strong>VAPID_PUBLIC_KEY</strong> → paste into your <code>.env</code> file<br/>
+      2. <strong>VAPID_PRIVATE_KEY</strong> → paste into your <code>.env</code> file<br/>
+      3. Both go into Railway → Settings → Variables<br/><br/>
+      <strong>Security:</strong> The private key must NEVER be shared publicly
+      or put in frontend code. Only the public key is safe to expose to browsers.
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+async function generateKeys() {
+  const statusEl = document.getElementById('status');
+  const btn = document.getElementById('generateBtn');
+  const results = document.getElementById('results');
+
+  btn.textContent = 'Generating...';
+  btn.disabled = true;
+  statusEl.className = 'status';
+  statusEl.textContent = '';
+
+  try {
+    // Generate ECDSA P-256 key pair using Web Crypto API
+    // This is the same curve that web-push uses (prime256v1 / secp256r1)
+    const keyPair = await crypto.subtle.generateKey(
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true,
+      ['sign', 'verify']
+    );
+
+    // Export public key as JWK to get x and y coordinates
+    const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
+
+    // Reconstruct uncompressed public key: 0x04 + X (32 bytes) + Y (32 bytes)
+    // This is the format that web-push expects (65 bytes total)
+    const xBytes = base64UrlDecode(publicJwk.x);
+    const yBytes = base64UrlDecode(publicJwk.y);
+    const uncompressedKey = new Uint8Array(65);
+    uncompressedKey[0] = 0x04; // Uncompressed point prefix
+    uncompressedKey.set(xBytes, 1);
+    uncompressedKey.set(yBytes, 33);
+    const publicKeyBase64Url = base64UrlEncode(uncompressedKey);
+
+    // Export private key as JWK to get the raw private key "d" value
+    // The "d" field is the raw 32-byte private key in base64url format
+    const privateJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
+    const privateKeyBase64Url = privateJwk.d;
+
+    // Display the keys
+    document.getElementById('publicKey').textContent = publicKeyBase64Url;
+    document.getElementById('privateKey').textContent = privateKeyBase64Url;
+    results.classList.remove('hidden');
+
+    statusEl.textContent = 'Keys generated successfully! Copy them into your .env file.';
+    statusEl.className = 'status success';
+
+    btn.textContent = 'Generate New Keys';
+    btn.disabled = false;
+  } catch (error) {
+    statusEl.textContent = 'Error generating keys: ' + error.message;
+    statusEl.className = 'status error';
+    btn.textContent = 'Try Again';
+    btn.disabled = false;
+  }
+}
+
+function base64UrlDecode(base64url) {
+  // Convert base64url to base64
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  // Add padding
+  const padLength = (4 - base64.length % 4) % 4;
+  base64 += '='.repeat(padLength);
+  // Decode to binary string then to Uint8Array
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function base64UrlEncode(bytes) {
+  // Convert Uint8Array to binary string
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  // Encode to base64 then convert to base64url
+  const base64 = btoa(binary);
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function copyKey(elementId) {
+  const text = document.getElementById(elementId).textContent;
+  if (!text || text === '—') return;
+
+  // Try clipboard API first
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      showCopied(elementId);
+    }).catch(function () {
+      fallbackCopy(text, elementId);
+    });
+  } else {
+    fallbackCopy(text, elementId);
+  }
+}
+
+function fallbackCopy(text, elementId) {
+  // Fallback for older mobile browsers
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    document.execCommand('copy');
+    showCopied(elementId);
+  } catch (e) {
+    alert('Could not copy automatically. Please long-press the key text and select Copy.');
+  }
+  document.body.removeChild(textarea);
+}
+
+function showCopied(elementId) {
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = 'Copied!';
+  btn.style.background = '#25D366';
+  btn.style.color = '#050B1F';
+  setTimeout(function () {
+    btn.textContent = originalText;
+    btn.style.background = '';
+    btn.style.color = '';
+  }, 2000);
+}
+</script>
+</body>
+</html>

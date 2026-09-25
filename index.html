@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SMMARIA Notifications — Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --navy-900: #050B1F;
+    --navy-800: #0A1530;
+    --navy-700: #122045;
+    --gold-500: #D4AF37;
+    --gold-400: #E8C766;
+    --gold-300: #F4D068;
+    --text-cream: #F5F0E1;
+  }
+  * { border-radius: 0 !important; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--navy-900);
+    color: var(--text-cream);
+    margin: 0;
+  }
+  .card { background: var(--navy-800); border: 1px solid rgba(212,175,55,0.25); }
+  .btn-gold { background: #D4AF37; color: #0A1530; font-weight: 700; border: 1px solid #D4AF37; }
+  .btn-gold:hover { background: #F4D068; }
+  .btn-outline { background: transparent; color: #F4D068; border: 1px solid #D4AF37; }
+  .btn-outline:hover { background: rgba(212,175,55,0.1); }
+  .input { background: var(--navy-900); border: 1px solid rgba(212,175,55,0.3); color: #F5F0E1; padding: 10px 14px; width: 100%; }
+  .input:focus { outline: none; border-color: #D4AF37; }
+  .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(245,240,225,0.5); margin-bottom: 6px; display: block; }
+  .tab-active { border-bottom: 2px solid #D4AF37; color: #F4D068; }
+  .preview-notif { background: #1a1a2e; border: 1px solid rgba(255,255,255,0.1); padding: 16px; max-width: 360px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 12px; background: var(--navy-700); color: #F4D068; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 2px solid #D4AF37; }
+  td { padding: 12px; border-bottom: 1px solid rgba(212,175,55,0.12); font-size: 14px; }
+  tr:hover td { background: rgba(212,175,55,0.04); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ════════ LOGIN SCREEN ════════ -->
+<div id="loginScreen" class="min-h-screen flex items-center justify-center px-6">
+  <div class="card p-8 max-w-md w-full">
+    <h1 class="text-2xl font-bold mb-2" style="color:#F4D068;">SMMARIA Notifications</h1>
+    <p class="text-sm mb-6" style="color:rgba(245,240,225,0.5);">Enter your admin key to access the notification dashboard.</p>
+    <input id="loginKey" type="password" class="input mb-4" placeholder="Admin Key" />
+    <button onclick="doLogin()" class="btn-gold px-6 py-3 w-full">Login</button>
+    <p id="loginError" class="text-sm mt-4 hidden" style="color:#FE2C55;"></p>
+  </div>
+</div>
+
+<!-- ════════ DASHBOARD ════════ -->
+<div id="dashboard" class="hidden min-h-screen">
+
+  <!-- Header -->
+  <header style="background:#050B1F; border-bottom:2px solid #D4AF37;" class="sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span style="color:#F4D068; font-weight:800; font-size:18px;">SMMARIA</span>
+        <span style="color:rgba(212,175,55,0.6); font-size:12px; letter-spacing:0.2em;">NOTIFICATIONS</span>
+      </div>
+      <button onclick="logout()" class="btn-outline px-4 py-2 text-sm">Logout</button>
+    </div>
+    <!-- Tabs -->
+    <div class="max-w-7xl mx-auto px-6 flex gap-8">
+      <button onclick="showTab('dashboard')" id="tab-dashboard" class="tab-active py-3 text-sm font-medium">Dashboard</button>
+      <button onclick="showTab('compose')" id="tab-compose" class="py-3 text-sm font-medium" style="color:rgba(245,240,225,0.6);">Compose</button>
+      <button onclick="showTab('history')" id="tab-history" class="py-3 text-sm font-medium" style="color:rgba(245,240,225,0.6);">History</button>
+      <button onclick="showTab('subscribers')" id="tab-subscribers" class="py-3 text-sm font-medium" style="color:rgba(245,240,225,0.6);">Subscribers</button>
+    </div>
+  </header>
+
+  <!-- ════════ DASHBOARD TAB ════════ -->
+  <section id="section-dashboard" class="max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Overview</h2>
+    <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <!-- Stats populated by JS -->
+    </div>
+  </section>
+
+  <!-- ════════ COMPOSE TAB ════════ -->
+  <section id="section-compose" class="hidden max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Compose Notification</h2>
+    <div class="grid lg:grid-cols-2 gap-8">
+      <!-- Form -->
+      <div class="card p-6">
+        <div class="mb-4">
+          <label class="label">Title</label>
+          <input id="f-title" class="input" placeholder="New SMMARIA Service" oninput="updatePreview()" />
+        </div>
+        <div class="mb-4">
+          <label class="label">Message</label>
+          <textarea id="f-body" class="input" rows="3" placeholder="Check out our latest service now available." oninput="updatePreview()"></textarea>
+        </div>
+        <div class="mb-4">
+          <label class="label">Image URL</label>
+          <input id="f-image" class="input" placeholder="https://smmaria.site/assets/images/promotion.jpg" oninput="updatePreview()" />
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="label">Icon URL</label>
+            <input id="f-icon" class="input" placeholder="https://smmaria.site/favicon.png" oninput="updatePreview()" />
+          </div>
+          <div>
+            <label class="label">Badge URL (optional)</label>
+            <input id="f-badge" class="input" placeholder="https://smmaria.site/badge.png" oninput="updatePreview()" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="label">Action Button Text</label>
+            <input id="f-action" class="input" placeholder="Activate Now" oninput="updatePreview()" />
+          </div>
+          <div>
+            <label class="label">Destination URL</label>
+            <input id="f-url" class="input" placeholder="https://smmaria.site/services" oninput="updatePreview()" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="label">Notification Type</label>
+            <select id="f-type" class="input">
+              <option value="general">General</option>
+              <option value="order">Order</option>
+              <option value="payment">Payment</option>
+              <option value="account">Account</option>
+              <option value="promotion">Promotion</option>
+              <option value="system">System</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Audience</label>
+            <select id="f-audience" class="input" onchange="toggleTargetUser()">
+              <option value="all">All Subscribers</option>
+              <option value="specific">Specific User</option>
+            </select>
+          </div>
+        </div>
+        <div id="targetUserBox" class="mb-6 hidden">
+          <label class="label">Target User ID</label>
+          <input id="f-targetUser" class="input" placeholder="USER_ID" />
+        </div>
+        <div class="flex gap-3">
+          <button onclick="sendNotification()" class="btn-gold px-6 py-3">Send Notification</button>
+          <button onclick="clearForm()" class="btn-outline px-6 py-3">Clear</button>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="card p-6">
+        <h3 class="text-sm font-bold mb-4" style="color:rgba(245,240,225,0.5); text-transform:uppercase; letter-spacing:0.1em;">Live Preview</h3>
+        <div class="preview-notif">
+          <div class="flex items-center gap-2 mb-3">
+            <img id="prev-icon" src="" alt="" class="hidden" style="width:24px; height:24px;" onerror="this.classList.add('hidden')" />
+            <span style="color:rgba(255,255,255,0.6); font-size:12px;">SMMARIA</span>
+            <span style="margin-left:auto; font-size:18px;">🔔</span>
+          </div>
+          <div id="prev-title" style="font-weight:bold; color:#fff; font-size:16px; margin-bottom:4px;">Notification title</div>
+          <div id="prev-body" style="color:rgba(255,255,255,0.7); font-size:14px; margin-bottom:12px;">Notification message body</div>
+          <img id="prev-image" src="" alt="" class="hidden mb-3" style="max-width:100%; max-height:200px;" onerror="this.classList.add('hidden')" />
+          <button id="prev-action" class="hidden btn-gold px-4 py-2 text-sm" style="font-size:12px;">Activate Now</button>
+        </div>
+        <p class="text-xs mt-4" style="color:rgba(245,240,225,0.3);">This is only a preview. The exact native appearance may differ between devices and browsers.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ HISTORY TAB ════════ -->
+  <section id="section-history" class="hidden max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Notification History</h2>
+    <div class="card overflow-x-auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Type</th>
+            <th>Audience</th>
+            <th>Date</th>
+            <th>Sent</th>
+            <th>Failed</th>
+            <th>Clicks</th>
+            <th>Action Clicks</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-6" style="background:rgba(5,11,31,0.9);">
+      <div class="card p-8 max-w-lg w-full">
+        <div class="flex justify-between items-start mb-4">
+          <h3 class="text-xl font-bold" id="am-title">Notification Analytics</h3>
+          <button onclick="closeModal()" class="text-2xl" style="color:rgba(245,240,225,0.5);">&times;</button>
+        </div>
+        <div id="am-content" class="space-y-3"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ SUBSCRIBERS TAB ════════ -->
+  <section id="section-subscribers" class="hidden max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">Subscribed Users</h2>
+    <div class="card overflow-x-auto">
+      <table>
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Subscribed</th>
+            <th>Devices</th>
+            <th>Last Seen</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="subscribersBody"></tbody>
+      </table>
+    </div>
+
+    <!-- User Devices Modal -->
+    <div id="devicesModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-6" style="background:rgba(5,11,31,0.9);">
+      <div class="card p-8 max-w-lg w-full">
+        <div class="flex justify-between items-start mb-4">
+          <h3 class="text-xl font-bold" id="dm-title">Active Devices</h3>
+          <button onclick="closeDevicesModal()" class="text-2xl" style="color:rgba(245,240,225,0.5);">&times;</button>
+        </div>
+        <div id="dm-content"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ════════ CONFIG ════════
+// Change this to your deployed backend URL
+const API_URL = 'https://notification-api.smmaria.site'; // or http://localhost:3000 for dev
+
+let adminKey = localStorage.getItem('smmaria_notif_admin_key') || '';
+
+// ════════ API HELPER ════════
+async function api(path, method, body) {
+  const opts = {
+    method: method || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-key': adminKey
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${API_URL}${path}`, opts);
+  return res.json();
+}
+
+// ════════ LOGIN ════════
+function doLogin() {
+  const key = document.getElementById('loginKey').value.trim();
+  if (!key) return;
+  adminKey = key;
+  localStorage.setItem('smmaria_notif_admin_key', key);
+  checkLogin();
+}
+
+function logout() {
+  adminKey = '';
+  localStorage.removeItem('smmaria_notif_admin_key');
+  location.reload();
+}
+
+async function checkLogin() {
+  try {
+    const r = await api('/api/admin/stats', 'GET');
+    if (r.success) {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      loadDashboard();
+    } else {
+      showLoginError('Invalid admin key');
+    }
+  } catch (e) {
+    showLoginError('Cannot connect to notification backend');
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+// ════════ TABS ════════
+function showTab(tab) {
+  ['dashboard', 'compose', 'history', 'subscribers'].forEach(t => {
+    document.getElementById('section-' + t).classList.add('hidden');
+    document.getElementById('tab-' + t).classList.remove('tab-active');
+    document.getElementById('tab-' + t).style.color = 'rgba(245,240,225,0.6)';
+  });
+  document.getElementById('section-' + tab).classList.remove('hidden');
+  document.getElementById('tab-' + tab).classList.add('tab-active');
+  document.getElementById('tab-' + tab).style.color = '#F4D068';
+
+  if (tab === 'dashboard') loadDashboard();
+  if (tab === 'history') loadHistory();
+  if (tab === 'subscribers') loadSubscribers();
+}
+
+// ════════ DASHBOARD ════════
+async function loadDashboard() {
+  try {
+    const r = await api('/api/admin/stats', 'GET');
+    if (!r.success) return;
+    const s = r.stats;
+    const items = [
+      { label: 'Subscribed Users', value: s.subscribedUsers || 0, color: '#F4D068' },
+      { label: 'Active Devices', value: s.activeDevices || 0, color: '#25F4EE' },
+      { label: 'Notifications Sent', value: s.notificationsSent || 0, color: '#F5F0E1' },
+      { label: 'Send Attempts', value: s.totalSendAttempts || 0, color: '#F4D068' },
+      { label: 'Failed Sends', value: s.totalFailedSends || 0, color: '#FE2C55' },
+      { label: 'Total Clicks', value: s.totalNotificationClicks || 0, color: '#25F4EE' }
+    ];
+    document.getElementById('statsGrid').innerHTML = items.map(i => `
+      <div class="card p-5">
+        <div style="font-size:28px; font-weight:800; color:${i.color};">${i.value}</div>
+        <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:rgba(245,240,225,0.5); margin-top:4px;">${i.label}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    console.error('Dashboard load error', e);
+  }
+}
+
+// ════════ PREVIEW ════════
+function updatePreview() {
+  const title = document.getElementById('f-title').value || 'Notification title';
+  const body = document.getElementById('f-body').value || 'Notification message body';
+  const image = document.getElementById('f-image').value;
+  const icon = document.getElementById('f-icon').value;
+  const action = document.getElementById('f-action').value;
+
+  document.getElementById('prev-title').textContent = title;
+  document.getElementById('prev-body').textContent = body;
+
+  const prevImg = document.getElementById('prev-image');
+  if (image) { prevImg.src = image; prevImg.classList.remove('hidden'); }
+  else { prevImg.classList.add('hidden'); }
+
+  const prevIcon = document.getElementById('prev-icon');
+  if (icon) { prevIcon.src = icon; prevIcon.classList.remove('hidden'); }
+  else { prevIcon.classList.add('hidden'); }
+
+  const prevAction = document.getElementById('prev-action');
+  if (action) { prevAction.textContent = action; prevAction.classList.remove('hidden'); }
+  else { prevAction.classList.add('hidden'); }
+}
+
+function toggleTargetUser() {
+  const audience = document.getElementById('f-audience').value;
+  document.getElementById('targetUserBox').classList.toggle('hidden', audience !== 'specific');
+}
+
+// ════════ SEND ════════
+async function sendNotification() {
+  const data = {
+    title: document.getElementById('f-title').value.trim(),
+    body: document.getElementById('f-body').value.trim(),
+    imageUrl: document.getElementById('f-image').value.trim() || null,
+    iconUrl: document.getElementById('f-icon').value.trim() || null,
+    badgeUrl: document.getElementById('f-badge').value.trim() || null,
+    actionText: document.getElementById('f-action').value.trim() || null,
+    destinationUrl: document.getElementById('f-url').value.trim() || null,
+    type: document.getElementById('f-type').value,
+    audience: document.getElementById('f-audience').value
+  };
+
+  if (!data.title || !data.body) {
+    alert('Title and message are required');
+    return;
+  }
+
+  const endpoint = data.audience === 'specific' ? '/api/admin/send-user' : '/api/admin/send';
+  if (data.audience === 'specific') {
+    data.targetUserId = document.getElementById('f-targetUser').value.trim();
+    if (!data.targetUserId) { alert('Target user ID is required'); return; }
+  }
+
+  try {
+    const r = await api(endpoint, 'POST', data);
+    if (r.success) {
+      alert(`Notification sent!\nSent: ${r.stats.sent}\nFailed: ${r.stats.failed}\nRemoved: ${r.stats.removed}`);
+      clearForm();
+      showTab('history');
+    } else {
+      alert('Error: ' + r.message);
+    }
+  } catch (e) {
+    alert('Failed to send notification');
+  }
+}
+
+function clearForm() {
+  ['f-title','f-body','f-image','f-icon','f-badge','f-action','f-url','f-targetUser'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-type').value = 'general';
+  document.getElementById('f-audience').value = 'all';
+  toggleTargetUser();
+  updatePreview();
+}
+
+// ════════ HISTORY ════════
+async function loadHistory() {
+  try {
+    const r = await api('/api/admin/notifications', 'GET');
+    if (!r.success) return;
+    const body = document.getElementById('historyBody');
+    body.innerHTML = r.notifications.map(n => `
+      <tr style="cursor:pointer;" onclick="showAnalytics('${n.id}')">
+        <td style="font-weight:600;">${escapeHtml(n.title)}</td>
+        <td style="color:#25F4EE;">${n.type}</td>
+        <td>${n.audience === 'specific' ? 'User: ' + escapeHtml(n.targetUserId || '') : 'All'}</td>
+        <td style="color:rgba(245,240,225,0.6);">${n.createdAt ? new Date(n.createdAt).toLocaleString() : '-'}</td>
+        <td style="color:#F4D068; font-weight:700;">${n.sentCount}</td>
+        <td style="color:#FE2C55;">${n.failedCount}</td>
+        <td>${n.clickCount}</td>
+        <td style="color:#25F4EE;">${n.actionClickCount}</td>
+        <td style="text-transform:uppercase; font-size:11px; color:${n.status === 'sent' ? '#25F4EE' : '#F4D068'};">${n.status}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('History load error', e);
+  }
+}
+
+async function showAnalytics(notifId) {
+  try {
+    const r = await api(`/api/admin/analytics/${notifId}`, 'GET');
+    if (!r.success) return;
+    const a = r.analytics;
+    document.getElementById('am-title').textContent = a.title;
+    document.getElementById('am-content').innerHTML = `
+      <div class="grid grid-cols-2 gap-3">
+        <div class="card p-4"><div style="font-size:24px; font-weight:800; color:#F4D068;">${a.sentCount}</div><div style="font-size:10px; text-transform:uppercase; color:rgba(245,240,225,0.5);">Sent</div></div>
+        <div class="card p-4"><div style="font-size:24px; font-weight:800; color:#FE2C55;">${a.failedCount}</div><div style="font-size:10px; text-transform:uppercase; color:rgba(245,240,225,0.5);">Failed</div></div>
+        <div class="card p-4"><div style="font-size:24px; font-weight:800; color:#F4D068;">${a.removedCount}</div><div style="font-size:10px; text-transform:uppercase; color:rgba(245,240,225,0.5);">Removed</div></div>
+        <div class="card p-4"><div style="font-size:24px; font-weight:800; color:#25F4EE;">${a.clickCount}</div><div style="font-size:10px; text-transform:uppercase; color:rgba(245,240,225,0.5);">Clicks</div></div>
+        <div class="card p-4"><div style="font-size:24px; font-weight:800; color:#25F4EE;">${a.actionClickCount}</div><div style="font-size:10px; text-transform:uppercase; color:rgba(245,240,225,0.5);">Action Clicks</div></div>
+        <div class="card p-4"><div style="font-size:24px; font-weight:800; color:#F5F0E1;">${a.status}</div><div style="font-size:10px; text-transform:uppercase; color:rgba(245,240,225,0.5);">Status</div></div>
+      </div>
+      <div class="mt-4 text-sm" style="color:rgba(245,240,225,0.6);">
+        <p><strong>Body:</strong> ${escapeHtml(a.body)}</p>
+        <p><strong>Type:</strong> ${a.type}</p>
+        <p><strong>Audience:</strong> ${a.audience}</p>
+        <p><strong>Action:</strong> ${a.actionText || 'N/A'}</p>
+        <p><strong>URL:</strong> ${a.destinationUrl || 'N/A'}</p>
+        <p><strong>Created:</strong> ${a.createdAt ? new Date(a.createdAt).toLocaleString() : 'N/A'}</p>
+      </div>
+    `;
+    document.getElementById('analyticsModal').classList.remove('hidden');
+  } catch (e) {
+    console.error('Analytics error', e);
+  }
+}
+
+function closeModal() {
+  document.getElementById('analyticsModal').classList.add('hidden');
+}
+
+// ════════ SUBSCRIBERS ════════
+async function loadSubscribers() {
+  try {
+    const r = await api('/api/admin/users', 'GET');
+    if (!r.success) return;
+    const body = document.getElementById('subscribersBody');
+    body.innerHTML = r.users.map(u => `
+      <tr style="cursor:pointer;" onclick="showDevices('${u.userId}')">
+        <td style="font-weight:600; color:#F4D068;">${escapeHtml(u.userId)}</td>
+        <td>${u.subscribed ? '<span style="color:#25F4EE;">Yes</span>' : '<span style="color:#FE2C55;">No</span>'}</td>
+        <td>${u.deviceCount}</td>
+        <td style="color:rgba(245,240,225,0.6);">${u.lastSeenAt ? new Date(u.lastSeenAt).toLocaleString() : '-'}</td>
+        <td style="color:#25F4EE; font-size:12px;">View Devices</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('Subscribers load error', e);
+  }
+}
+
+async function showDevices(userId) {
+  try {
+    const r = await api('/api/admin/users', 'GET');
+    if (!r.success) return;
+    const user = r.users.find(u => u.userId === userId);
+    if (!user) return;
+    document.getElementById('dm-title').textContent = `Devices — ${userId}`;
+    document.getElementById('dm-content').innerHTML = user.devices.length > 0
+      ? user.devices.map(d => `
+        <div class="card p-4 mb-2">
+          <div style="font-weight:600;">${escapeHtml(d.browser)}</div>
+          <div style="font-size:12px; color:rgba(245,240,225,0.6);">Platform: ${escapeHtml(d.platform)}</div>
+          <div style="font-size:12px; color:rgba(245,240,225,0.6);">Created: ${d.createdAt ? new Date(d.createdAt).toLocaleString() : '-'}</div>
+          <div style="font-size:12px; color:${d.active ? '#25F4EE' : '#FE2C55'};">${d.active ? 'Active' : 'Inactive'}</div>
+        </div>
+      `).join('')
+      : '<p style="color:rgba(245,240,225,0.5);">No active devices</p>';
+    document.getElementById('devicesModal').classList.remove('hidden');
+  } catch (e) {
+    console.error('Devices error', e);
+  }
+}
+
+function closeDevicesModal() {
+  document.getElementById('devicesModal').classList.add('hidden');
+}
+
+// ════════ UTIL ════════
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+}
+
+// ════════ INIT ════════
+if (adminKey) checkLogin();
+</script>
+</body>
+</html>
